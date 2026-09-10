@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFC Card — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F4EF;
+    --paper-surface:#FFFFFF;
+    --paper-line:#E4E0D6;
+    --text:#1B1D22;
+    --text-dim:#6B6F78;
+    --accent:#00D8A0;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+  .display{font-family:'Space Grotesk','Inter',sans-serif;}
+
+  .app-shell{max-width:1160px;margin:0 auto;padding:28px 20px 60px;}
+
+  .top-tabs{display:flex;gap:6px;background:var(--paper-surface);border:1px solid var(--paper-line);
+    padding:5px;border-radius:999px;width:fit-content;margin:0 auto 32px;}
+  .top-tabs button{border:none;background:transparent;padding:9px 22px;border-radius:999px;
+    font-family:inherit;font-size:14.5px;font-weight:600;color:var(--text-dim);cursor:pointer;
+    transition:background .18s ease,color .18s ease;}
+  .top-tabs button.active{background:#12141A;color:#fff;}
+
+  .view{display:none;}
+  #view-card.active{display:flex;justify-content:center;}
+  #view-dash.active{display:grid;grid-template-columns:1fr 360px;gap:26px;align-items:start;}
+  @media(max-width:860px){#view-dash.active{grid-template-columns:1fr;}}
+
+  /* ---------- FORM PANELS ---------- */
+  .panel{background:var(--paper-surface);border:1px solid var(--paper-line);border-radius:var(--radius);
+    padding:22px 24px;margin-bottom:18px;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .panel h3{font-family:'Space Grotesk';font-size:16px;margin:0 0 3px;}
+  .panel .hint{font-size:13px;color:var(--text-dim);margin:0 0 18px;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:6px;}
+  .field input,.field textarea,.field select{width:100%;border:1px solid var(--paper-line);border-radius:10px;
+    padding:11px 13px;font-family:inherit;font-size:14.5px;color:var(--text);background:#FCFBF9;}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .field textarea{resize:vertical;min-height:78px;line-height:1.6;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.two-col{grid-template-columns:1fr;}}
+
+  /* avatar upload */
+  .avatar-upload-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .avatar-thumb{width:56px;height:56px;border-radius:50%;background-color:#12141A11;background-size:cover;
+    background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';
+    font-weight:600;font-size:16px;color:var(--text-dim);flex-shrink:0;}
+  .avatar-upload-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-file{display:inline-block;border:1px solid var(--paper-line);background:#FCFBF9;border-radius:10px;
+    padding:10px 14px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;}
+  .btn-file:hover{border-color:#12141A;}
+
+  /* theme controls */
+  .theme-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+  .swatch-input{display:flex;align-items:center;gap:10px;}
+  .swatch-input input[type=color]{width:44px;height:44px;border:1px solid var(--paper-line);border-radius:10px;
+    padding:2px;background:#FCFBF9;cursor:pointer;}
+  .mode-toggle{display:flex;border:1px solid var(--paper-line);border-radius:10px;overflow:hidden;}
+  .mode-toggle button{border:none;background:#FCFBF9;padding:10px 16px;font-family:inherit;font-size:13.5px;
+    font-weight:600;color:var(--text-dim);cursor:pointer;}
+  .mode-toggle button.active{background:#12141A;color:#fff;}
+  .preset-swatches{display:flex;gap:8px;}
+  .preset-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;}
+  .preset-swatch.selected{border-color:#12141A;}
+
+  /* dynamic link rows */
+  .link-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:10px;align-items:center;}
+  @media(max-width:520px){.link-row{grid-template-columns:1fr;}}
+  .link-row input{width:100%;border:1px solid var(--paper-line);border-radius:10px;padding:10px 12px;
+    font-family:inherit;font-size:14px;background:#FCFBF9;}
+  .icon-btn{border:1px solid var(--paper-line);background:#FCFBF9;border-radius:10px;padding:10px 12px;
+    cursor:pointer;font-size:13px;color:#B3403A;font-weight:600;}
+  .add-link-btn{border:1px dashed var(--paper-line);background:transparent;border-radius:10px;
+    padding:11px;width:100%;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--text-dim);cursor:pointer;}
+  .add-link-btn:hover{border-color:#12141A;color:#12141A;}
+
+  /* share link panel */
+  .share-link-row{display:flex;gap:8px;}
+  .share-link-row input{flex:1;border:1px solid var(--paper-line);border-radius:10px;padding:10px 12px;
+    font-family:inherit;font-size:13px;background:#FCFBF9;color:var(--text-dim);}
+  .share-link-row .icon-btn{color:var(--text);white-space:nowrap;}
+
+  .save-bar{display:flex;align-items:center;gap:12px;position:sticky;bottom:16px;}
+  .btn-primary{background:#12141A;color:#fff;border:none;padding:13px 26px;border-radius:12px;
+    font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer;}
+  .btn-primary:disabled{opacity:.6;cursor:default;}
+  .status-msg{font-size:13.5px;color:var(--text-dim);}
+  .status-msg.ok{color:#0E8F63;font-weight:600;}
+  .status-msg.warn{color:#B3403A;font-weight:600;}
+
+  .preview-wrap{position:sticky;top:20px;}
+  .preview-label{font-size:12.5px;font-weight:600;color:var(--text-dim);margin-bottom:10px;}
+  .preview-shell{transform:scale(0.86);transform-origin:top center;}
+
+  /* ---------- CARD (rendered, theme-driven) ---------- */
+  .phone-frame{width:100%;max-width:400px;border-radius:28px;padding:36px 26px 30px;position:relative;
+    overflow:hidden;box-shadow:0 30px 60px -20px rgba(18,20,26,0.35);}
+  .phone-frame.mode-dark{background:#12141A;color:#fff;}
+  .phone-frame.mode-light{background:#FFFFFF;color:#1B1D22;border:1px solid #E4E0D6;}
+
+  .signal-row{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:28px;
+    opacity:0;animation:fadein .5s ease forwards .15s;}
+  .signal-dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.8s ease-out 1;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,0,0,0.35);}100%{box-shadow:0 0 0 14px rgba(0,0,0,0);}}
+  @keyframes fadein{to{opacity:1;}}
+
+  .avatar{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-size:26px;font-weight:600;margin-bottom:18px;background-size:cover;
+    background-position:center;}
+  .id-name{font-size:26px;font-weight:700;line-height:1.25;margin:0 0 4px;font-family:'Space Grotesk',sans-serif;}
+  .id-role{font-size:15px;margin:0 0 22px;opacity:.65;}
+  .id-bio{font-size:14.5px;line-height:1.7;margin:0 0 26px;opacity:.85;}
+
+  .contact-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+  .contact-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;
+    padding:13px 16px;text-decoration:none;}
+  .phone-frame.mode-dark .contact-row{background:#1C1F27;border:1px solid rgba(255,255,255,0.09);color:#fff;}
+  .phone-frame.mode-light .contact-row{background:#F6F4EF;border:1px solid #E4E0D6;color:#1B1D22;}
+  .contact-row .label{font-size:12px;opacity:.6;}
+  .contact-row .value{font-size:14.5px;font-weight:600;}
+  .contact-row .cr-left{display:flex;flex-direction:column;gap:2px;}
+  .contact-row .go{font-size:13px;font-weight:600;}
+
+  .social-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px;}
+  .social-pill{padding:8px 14px;border-radius:999px;font-size:13px;font-weight:500;text-decoration:none;}
+  .phone-frame.mode-dark .social-pill{border:1px solid rgba(255,255,255,0.09);color:#fff;}
+  .phone-frame.mode-light .social-pill{border:1px solid #E4E0D6;color:#1B1D22;}
+
+  .save-btn{display:block;width:100%;text-align:center;color:#12141A;border:none;padding:15px;border-radius:12px;
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+  .empty-note{opacity:.6;font-size:13.5px;line-height:1.8;text-align:center;padding:30px 6px;}
+
+  /* ---------- VISITOR (public) PAGE ---------- */
+  .visitor-page{max-width:460px;margin:0 auto;padding:48px 20px 60px;}
+  .visitor-footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:18px;}
+</style>
+</head>
+<body>
+
+<!-- ================= DASHBOARD (owner-only) ================= -->
+<div class="app-shell" id="dashboard-root">
+  <div class="top-tabs">
+    <button id="tab-dash" class="active">Dashboard</button>
+    <button id="tab-card">Card Preview</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dash" class="view active">
+    <div>
+      <div class="panel">
+        <h3>Basic info</h3>
+        <p class="hint">This is what appears the moment someone taps your card.</p>
+        <div class="field"><label>Full name</label><input id="f-name" placeholder="e.g. Ahmed Mahmoud"></div>
+        <div class="two-col">
+          <div class="field"><label>Job title</label><input id="f-title" placeholder="e.g. Graphic Designer"></div>
+          <div class="field"><label>Company (optional)</label><input id="f-company" placeholder="e.g. Freelance"></div>
+        </div>
+        <div class="field"><label>Short bio</label><textarea id="f-bio" placeholder="A line or two about what you do"></textarea></div>
+        <div class="field">
+          <label>Profile photo (optional)</label>
+          <div class="avatar-upload-row">
+            <div class="avatar-thumb" id="avatar-thumb"></div>
+            <div class="avatar-upload-actions">
+              <label class="btn-file" for="f-avatar-file">Choose image</label>
+              <input type="file" id="f-avatar-file" accept="image/*" hidden>
+              <button type="button" class="icon-btn" id="btn-remove-avatar">Remove</button>
+            </div>
+          </div>
+          <p class="hint" style="margin:8px 0 0;">JPG or PNG from your device — it's resized automatically. Leave empty to show your initials instead.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Contact</h3>
+        <p class="hint">Shown as quick-action rows on the card.</p>
+        <div class="two-col">
+          <div class="field"><label>Phone</label><input id="f-phone" placeholder="+20 1xxxxxxxxx"></div>
+          <div class="field"><label>WhatsApp (if different)</label><input id="f-whatsapp" placeholder="+20 1xxxxxxxxx"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Email</label><input id="f-email" placeholder="name@example.com"></div>
+          <div class="field"><label>Website</label><input id="f-website" placeholder="https://..."></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Custom links</h3>
+        <p class="hint">Add anything — portfolio, LinkedIn, Instagram, booking page, menu, whatever fits.</p>
+        <div id="links-container"></div>
+        <button class="add-link-btn" id="btn-add-link">+ Add link</button>
+      </div>
+
+      <div class="panel">
+        <h3>Appearance</h3>
+        <p class="hint">Customize how your card looks — this is fully yours.</p>
+        <div class="theme-row" style="margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:8px;">Card style</label>
+            <div class="mode-toggle">
+              <button id="mode-dark" class="active">Dark</button>
+              <button id="mode-light">Light</button>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:8px;">Accent color</label>
+            <div class="swatch-input">
+              <input type="color" id="f-accent" value="#00D8A0">
+              <div class="preset-swatches" id="preset-swatches"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="share-panel">
+        <h3>Your public card link</h3>
+        <p class="hint">This is the page visitors land on when they tap your NFC card. It only updates when you click "Save changes" below, and it's visible to anyone who has the link.</p>
+        <div class="share-link-row">
+          <input id="share-link-input" readonly>
+          <button class="icon-btn" id="btn-copy-link">Copy</button>
+        </div>
+        <p class="status-msg" id="publish-status" style="margin-top:10px;"></p>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn-primary" id="btn-save">Save changes</button>
+        <span class="status-msg" id="save-status"></span>
+      </div>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="preview-label">Live preview (not yet saved)</div>
+      <div class="preview-shell"><div class="phone-frame mode-dark" id="preview-card"></div></div>
+    </div>
+  </div>
+
+  <!-- OWNER'S OWN FULL-SIZE PREVIEW -->
+  <div id="view-card" class="view">
+    <div class="phone-frame mode-dark" id="full-card"></div>
+  </div>
+</div>
+
+<!-- ================= VISITOR (public) PAGE ================= -->
+<div class="visitor-page" id="visitor-root" style="display:none;">
+  <div class="phone-frame mode-dark" id="visitor-card"></div>
+  <div class="visitor-footer">Digital business card</div>
+</div>
+
+<script>
+const PERSONAL_PROFILE_KEY = 'profile:main';
+const PERSONAL_SLUG_KEY = 'card:slug';
+const PRESET_COLORS = ['#00D8A0','#2954A6','#C98A3E','#B3403A','#8A5CF6','#F2B705'];
+
+const defaults = {
+  name:'', title:'', company:'', bio:'', avatar:'',
+  phone:'', whatsapp:'', email:'', website:'',
+  theme:{ mode:'dark', accent:'#00D8A0' },
+  links:[]
+};
+let profile = JSON.parse(JSON.stringify(defaults));
+let slug = '';
+let lastSavedJSON = '';
+let isPublished = false;
+
+const basicFields = ['name','title','company','bio','phone','whatsapp','email','website'];
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function initials(name){
+  if(!name || !name.trim()) return '?';
+  const parts = name.trim().split(/\s+/);
+  return (parts.length > 1 ? (parts[0][0] + parts[1][0]) : parts[0].slice(0,2)).toUpperCase();
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function buildVCard(p){
+  const lines = ['BEGIN:VCARD','VERSION:3.0'];
+  lines.push('FN:' + (p.name || ''));
+  if(p.company) lines.push('ORG:' + p.company);
+  if(p.title) lines.push('TITLE:' + p.title);
+  if(p.phone) lines.push('TEL;TYPE=CELL:' + p.phone);
+  if(p.email) lines.push('EMAIL:' + p.email);
+  if(p.website) lines.push('URL:' + p.website);
+  if(p.bio) lines.push('NOTE:' + p.bio.replace(/\n/g,' '));
+  lines.push('END:VCARD');
+  return lines.join('\n');
+}
+
+function downloadVCard(){
+  const blob = new Blob([buildVCard(profile)], {type:'text/vcard'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (profile.name || 'contact').trim().replace(/\s+/g,'_') + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderCard(p, container){
+  const hasAnyContact = p.phone || p.whatsapp || p.email || p.website;
+  const validLinks = (p.links||[]).filter(l => l.label && l.url);
+
+  container.className = 'phone-frame ' + (p.theme.mode === 'light' ? 'mode-light' : 'mode-dark');
+
+  if(!p.name && !p.title && !hasAnyContact && validLinks.length === 0){
+    container.innerHTML = `<div class="empty-note">No data yet.<br>Fill in your details on the left to see your card here.</div>`;
+    return;
+  }
+
+  const accent = p.theme.accent || '#00D8A0';
+
+  let contactRows = '';
+  if(p.phone) contactRows += `<a class="contact-row" href="tel:${escapeHtml(p.phone)}"><span class="cr-left"><span class="label">Phone</span><span class="value">${escapeHtml(p.phone)}</span></span><span class="go" style="color:${accent}">Call</span></a>`;
+  if(p.whatsapp) contactRows += `<a class="contact-row" href="https://wa.me/${escapeHtml(p.whatsapp.replace(/[^0-9]/g,''))}" target="_blank"><span class="cr-left"><span class="label">WhatsApp</span><span class="value">${escapeHtml(p.whatsapp)}</span></span><span class="go" style="color:${accent}">Message</span></a>`;
+  if(p.email) contactRows += `<a class="contact-row" href="mailto:${escapeHtml(p.email)}"><span class="cr-left"><span class="label">Email</span><span class="value">${escapeHtml(p.email)}</span></span><span class="go" style="color:${accent}">Send</span></a>`;
+  if(p.website) contactRows += `<a class="contact-row" href="${escapeHtml(p.website)}" target="_blank"><span class="cr-left"><span class="label">Website</span><span class="value">${escapeHtml(p.website.replace(/^https?:\/\//,''))}</span></span><span class="go" style="color:${accent}">Open</span></a>`;
+
+  let linkPills = '';
+  validLinks.forEach(l => {
+    linkPills += `<a class="social-pill" href="${escapeHtml(l.url)}" target="_blank">${escapeHtml(l.label)}</a>`;
+  });
+
+  const avatarInner = p.avatar
+    ? `style="background-image:url('${escapeHtml(p.avatar)}');color:transparent;"`
+    : `style="background:${accent}22;color:${accent};"`;
+
+  container.innerHTML = `
+    <div class="signal-row" style="color:${accent}"><span class="signal-dot" style="background:${accent}"></span><span>Connected via NFC</span></div>
+    <div class="avatar" ${avatarInner}>${p.avatar ? '' : initials(p.name)}</div>
+    <h1 class="id-name">${escapeHtml(p.name) || 'No name yet'}</h1>
+    <p class="id-role">${[p.title, p.company].filter(Boolean).map(escapeHtml).join(' · ')}</p>
+    ${p.bio ? `<p class="id-bio">${escapeHtml(p.bio)}</p>` : ''}
+    ${contactRows ? `<div class="contact-list">${contactRows}</div>` : ''}
+    ${linkPills ? `<div class="social-row">${linkPills}</div>` : ''}
+    <button class="save-btn" style="background:${accent}" data-action="save-vcard">Save to contacts</button>
+  `;
+
+  const btn = container.querySelector('[data-action="save-vcard"]');
+  if(btn) btn.addEventListener('click', downloadVCard);
+}
+
+/* ============================================================
+   VISITOR (public) PAGE — read-only, loaded by ?mode=view&id=SLUG
+   ============================================================ */
+async function initVisitorPage(viewSlug){
+  const card = document.getElementById('visitor-card');
+  card.innerHTML = `<div class="empty-note">Loading card…</div>`;
+  try{
+    const res = await window.storage.get('public:' + viewSlug, true);
+    if(!res || !res.value){
+      card.innerHTML = `<div class="empty-note">This card hasn't been published yet.<br>Ask the owner to save their changes, or double-check the link.</div>`;
+      return;
+    }
+    const publicProfile = JSON.parse(res.value);
+    renderCard(publicProfile, card);
+  }catch(e){
+    card.innerHTML = `<div class="empty-note">Couldn't load this card right now.<br>Please try again in a moment.</div>`;
+  }
+}
+
+/* ============================================================
+   OWNER DASHBOARD
+   ============================================================ */
+function renderAll(){
+  renderCard(profile, document.getElementById('preview-card'));
+  renderCard(profile, document.getElementById('full-card'));
+}
+
+function renderLinkRows(){
+  const wrap = document.getElementById('links-container');
+  wrap.innerHTML = '';
+  profile.links.forEach(link => {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+    row.innerHTML = `
+      <input placeholder="Label (e.g. Portfolio)" value="${escapeHtml(link.label)}" data-id="${link.id}" data-field="label">
+      <input placeholder="https://..." value="${escapeHtml(link.url)}" data-id="${link.id}" data-field="url">
+      <button class="icon-btn" data-id="${link.id}" data-action="remove">Remove</button>
+    `;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const link = profile.links.find(l => l.id === inp.dataset.id);
+      if(link) link[inp.dataset.field] = inp.value;
+      renderCard(profile, document.getElementById('preview-card'));
+      markDirty();
+    });
+  });
+  wrap.querySelectorAll('[data-action="remove"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      profile.links = profile.links.filter(l => l.id !== btn.dataset.id);
+      renderLinkRows();
+      renderCard(profile, document.getElementById('preview-card'));
+      markDirty();
+    });
+  });
+}
+
+function renderPresetSwatches(){
+  const wrap = document.getElementById('preset-swatches');
+  wrap.innerHTML = '';
+  PRESET_COLORS.forEach(color => {
+    const sw = document.createElement('div');
+    sw.className = 'preset-swatch' + (profile.theme.accent.toLowerCase() === color.toLowerCase() ? ' selected' : '');
+    sw.style.background = color;
+    sw.addEventListener('click', () => {
+      profile.theme.accent = color;
+      document.getElementById('f-accent').value = color;
+      renderPresetSwatches();
+      renderCard(profile, document.getElementById('preview-card'));
+      markDirty();
+    });
+    wrap.appendChild(sw);
+  });
+}
+
+function updateAvatarThumb(){
+  const el = document.getElementById('avatar-thumb');
+  if(profile.avatar){
+    el.style.backgroundImage = `url('${profile.avatar}')`;
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.textContent = initials(profile.name);
+  }
+}
+
+function resizeImageFile(file, maxDim, quality){
+  maxDim = maxDim || 360;
+  quality = quality || 0.85;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; } }
+        else { if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadFormFromProfile(){
+  basicFields.forEach(f => {
+    const el = document.getElementById('f-' + f);
+    if(el) el.value = profile[f] || '';
+  });
+  document.getElementById('f-accent').value = profile.theme.accent;
+  updateAvatarThumb();
+  setMode(profile.theme.mode, false);
+  renderLinkRows();
+  renderPresetSwatches();
+}
+
+function bindFormEvents(){
+  basicFields.forEach(f => {
+    const el = document.getElementById('f-' + f);
+    if(!el) return;
+    el.addEventListener('input', () => {
+      profile[f] = el.value;
+      if(f === 'name' && !profile.avatar) updateAvatarThumb();
+      renderCard(profile, document.getElementById('preview-card'));
+      markDirty();
+    });
+  });
+  document.getElementById('f-accent').addEventListener('input', (e) => {
+    profile.theme.accent = e.target.value;
+    renderPresetSwatches();
+    renderCard(profile, document.getElementById('preview-card'));
+    markDirty();
+  });
+
+  document.getElementById('f-avatar-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      alert('Please choose an image file (JPG or PNG).');
+      return;
+    }
+    if(file.size > 8 * 1024 * 1024){
+      alert('That image is too large. Please choose a file under 8MB.');
+      return;
+    }
+    try{
+      profile.avatar = await resizeImageFile(file);
+      updateAvatarThumb();
+      renderCard(profile, document.getElementById('preview-card'));
+      markDirty();
+    }catch(err){
+      alert('Could not read that image. Please try a different file.');
+    }
+  });
+
+  document.getElementById('btn-remove-avatar').addEventListener('click', () => {
+    profile.avatar = '';
+    updateAvatarThumb();
+    renderCard(profile, document.getElementById('preview-card'));
+    markDirty();
+  });
+}
+
+function setMode(mode, rerender){
+  if(rerender === undefined) rerender = true;
+  profile.theme.mode = mode;
+  document.getElementById('mode-dark').classList.toggle('active', mode==='dark');
+  document.getElementById('mode-light').classList.toggle('active', mode==='light');
+  if(rerender){
+    renderCard(profile, document.getElementById('preview-card'));
+    markDirty();
+  }
+}
+
+function isDirty(){
+  return JSON.stringify(profile) !== lastSavedJSON;
+}
+
+function markDirty(){
+  const status = document.getElementById('save-status');
+  if(isDirty()){
+    status.textContent = 'Unsaved changes';
+    status.classList.remove('ok');
+    status.classList.remove('warn');
+  } else {
+    status.textContent = '';
+    status.classList.remove('ok');
+    status.classList.remove('warn');
+  }
+}
+
+function buildViewUrl(theSlug){
+  const url = new URL(location.href);
+  url.search = '?mode=view&id=' + encodeURIComponent(theSlug);
+  url.hash = '';
+  return url.toString();
+}
+
+function updatePublishStatus(){
+  const el = document.getElementById('publish-status');
+  el.textContent = isPublished
+    ? 'Published — this link shows your latest saved card.'
+    : 'Not published yet — click "Save changes" to make this link live.';
+}
+
+async function ensureSlug(){
+  try{
+    const res = await window.storage.get(PERSONAL_SLUG_KEY, false);
+    if(res && res.value) return res.value;
+  }catch(e){ /* none saved yet */ }
+  const newSlug = uid() + uid();
+  try{
+    await window.storage.set(PERSONAL_SLUG_KEY, newSlug, false);
+  }catch(e){ /* will retry generating one next load if this failed */ }
+  return newSlug;
+}
+
+async function checkPublished(){
+  try{
+    const res = await window.storage.get('public:' + slug, true);
+    isPublished = !!(res && res.value);
+  }catch(e){
+    isPublished = false;
+  }
+  updatePublishStatus();
+}
+
+async function loadProfile(){
+  try{
+    const result = await window.storage.get(PERSONAL_PROFILE_KEY, false);
+    if(result && result.value){
+      const saved = JSON.parse(result.value);
+      profile = { ...defaults, ...saved, theme:{...defaults.theme, ...(saved.theme||{})}, links: saved.links || [] };
+    }
+  }catch(e){
+    // no saved data yet, keep defaults
+  }
+  lastSavedJSON = JSON.stringify(profile);
+  loadFormFromProfile();
+  renderAll();
+}
+
+async function saveProfile(){
+  const btn = document.getElementById('btn-save');
+  const status = document.getElementById('save-status');
+  btn.disabled = true;
+  status.textContent = 'Saving...';
+  status.classList.remove('ok','warn');
+  try{
+    await window.storage.set(PERSONAL_PROFILE_KEY, JSON.stringify(profile), false);
+    await window.storage.set('public:' + slug, JSON.stringify(profile), true);
+    lastSavedJSON = JSON.stringify(profile);
+    isPublished = true;
+    updatePublishStatus();
+    status.textContent = 'Saved ✓ — your card is live';
+    status.classList.add('ok');
+    renderCard(profile, document.getElementById('full-card'));
+  }catch(e){
+    status.textContent = 'Save failed — please try again.';
+    status.classList.add('warn');
+  }finally{
+    btn.disabled = false;
+    setTimeout(() => {
+      if(!isDirty()){
+        status.textContent = '';
+        status.classList.remove('ok','warn');
+      }
+    }, 2500);
+  }
+}
+
+function bindTabs(){
+  const tabDash = document.getElementById('tab-dash');
+  const tabCard = document.getElementById('tab-card');
+  const viewDash = document.getElementById('view-dash');
+  const viewCard = document.getElementById('view-card');
+  tabDash.addEventListener('click', () => {
+    tabDash.classList.add('active'); tabCard.classList.remove('active');
+    viewDash.classList.add('active'); viewCard.classList.remove('active');
+  });
+  tabCard.addEventListener('click', () => {
+    tabCard.classList.add('active'); tabDash.classList.remove('active');
+    viewCard.classList.add('active'); viewDash.classList.remove('active');
+    renderCard(profile, document.getElementById('full-card'));
+  });
+}
+
+function bindCopyLink(){
+  document.getElementById('btn-copy-link').addEventListener('click', async () => {
+    const input = document.getElementById('share-link-input');
+    try{
+      await navigator.clipboard.writeText(input.value);
+    }catch(e){
+      input.select();
+      document.execCommand('copy');
+    }
+    const btn = document.getElementById('btn-copy-link');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1600);
+  });
+}
+
+async function initDashboard(){
+  bindFormEvents();
+  bindTabs();
+  bindCopyLink();
+  document.getElementById('mode-dark').addEventListener('click', () => setMode('dark'));
+  document.getElementById('mode-light').addEventListener('click', () => setMode('light'));
+  document.getElementById('btn-add-link').addEventListener('click', () => {
+    profile.links.push({ id: uid(), label:'', url:'' });
+    renderLinkRows();
+    markDirty();
+  });
+  document.getElementById('btn-save').addEventListener('click', saveProfile);
+
+  slug = await ensureSlug();
+  document.getElementById('share-link-input').value = buildViewUrl(slug);
+  await loadProfile();
+  await checkPublished();
+
+  window.addEventListener('beforeunload', (e) => {
+    if(isDirty()){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+}
+
+/* ============================================================
+   ROUTING — decide which page to show
+   ============================================================ */
+(function start(){
+  const params = new URLSearchParams(location.search);
+  const viewSlug = params.get('id');
+  const isVisitor = params.get('mode') === 'view' && !!viewSlug;
+
+  if(isVisitor){
+    document.getElementById('dashboard-root').style.display = 'none';
+    document.getElementById('visitor-root').style.display = 'block';
+    initVisitorPage(viewSlug);
+  } else {
+    document.getElementById('visitor-root').style.display = 'none';
+    initDashboard();
+  }
+})();
+</script>
+</body>
+</html>
